@@ -23,14 +23,14 @@ type SendResult struct {
 	Id      string `json:"id"`
 }
 
-func (this *handlers) send(c *request.C) {
+func (this *HandlerMod) send(c *request.C) {
 	args := &SendArgs{}
 	if err := jsonutils.GetJsonArgsFromContext(c, args); err != nil {
 		c.Abort(0, err)
 		return
 	}
 
-	if !CheckSignature(this.gunner.cfg.APIKey, args.Token, args.Timestamp, args.Signature) {
+	if !CheckSignature(this.cfg.APIKey, args.Token, args.Timestamp, args.Signature) {
 		c.Abort(0, errInvalidSignature)
 		return
 	}
@@ -62,7 +62,7 @@ func (this *handlers) send(c *request.C) {
 		}
 	}
 
-	msg, id, err := this.gunner.m.Send(mail)
+	msg, id, err := this.m.Send(mail)
 	if err != nil {
 		c.Abort(0, newErrSendFailure(err.Error()))
 		return

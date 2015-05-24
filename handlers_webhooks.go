@@ -26,8 +26,8 @@ var (
 	}
 )
 
-func (this *handlers) eventWebHooker(c *request.C) {
-	if !CheckSignatureFromRequest(c.Req, this.gunner.cfg.APIKey) {
+func (this *HandlerMod) eventWebHooker(c *request.C) {
+	if !CheckSignatureFromRequest(c.Req, this.cfg.APIKey) {
 		c.Abort(0, errInvalidSignature)
 		return
 	}
@@ -47,14 +47,14 @@ func (this *handlers) eventWebHooker(c *request.C) {
 	return
 }
 
-func (this *handlers) doEvent(eventType string, c *request.C) {
-	hookers, ok := this.gunner.eventHookers[eventType]
+func (this *HandlerMod) doEvent(eventType string, c *request.C) {
+	hookers, ok := this.eventHookers[eventType]
 	if !ok || hookers == nil || len(hookers) == 0 {
 		return
 	}
 
 	for i, h := range hookers {
-		if err := h(c.Req, this.gunner.cfg, eventType); err != nil {
+		if err := h(c.Req, this.cfg, eventType); err != nil {
 			this.log(c, "Hooker:", i, "event hooker error:", err)
 		}
 	}

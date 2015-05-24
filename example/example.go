@@ -9,11 +9,9 @@ import (
 
 func main() {
 	guunerCfg := mailgunner.Config{
-		URLPrefix:    "",
 		MailDomain:   "test.com",
 		PublicAPIKey: "abcde",
 		APIKey:       "key-fghijk",
-		Addr:         "127.0.0.1:56666",
 		Debug:        true,
 	}
 	gunner, err := mailgunner.NewGunner(guunerCfg)
@@ -26,7 +24,7 @@ func main() {
 		gunner.AddEventHooker(typ, echoHooker)
 	}
 
-	if err := gunner.Run(); err != nil {
+	if err := gunner.Run("127.0.0.1:56666"); err != nil {
 		log.Fatalln(err)
 	}
 }
