@@ -1,9 +1,11 @@
 package mailgunner
 
 import (
-	"github.com/dtynn/caesar/httputils/jsonutils"
-	"github.com/dtynn/caesar/request"
+	"net/http"
+
 	"github.com/mailgun/mailgun-go"
+	"github.com/tukdesk/httputils/jsonutils"
+	"github.com/zenazn/goji/web"
 )
 
 type SendArgs struct {
@@ -23,35 +25,35 @@ type SendResult struct {
 	Id      string `json:"id"`
 }
 
-func (this *HandlerMod) send(c *request.C) {
+func (this *HandlerMod) send(c web.C, w http.ResponseWriter, r *http.Request) {
 	args := &SendArgs{}
-	if err := jsonutils.GetJsonArgsFromContext(c, args); err != nil {
-		c.Abort(0, err)
+	if err := jsonutils.GetJsonArgsFromRequest(r, args); err != nil {
+		jsonutils.OutputJsonError(newErrInvalidRequestBody(err.Error()), w, r)
 		return
 	}
 
 	if !CheckSignature(this.cfg.APIKey, args.Token, args.Timestamp, args.Signature) {
-		c.Abort(0, errInvalidSignature)
+		jsonutils.OutputJsonError(errInvalidSignature, w, r)
 		return
 	}
 
 	if args.From == "" {
-		c.Abort(0, errFromRequired)
+		jsonutils.OutputJsonError(errFromRequired, w, r)
 		return
 	}
 
 	if args.Subject == "" {
-		c.Abort(0, errSubjectRequired)
+		jsonutils.OutputJsonError(errSubjectRequired, w, r)
 		return
 	}
 
 	if args.Text == "" {
-		c.Abort(0, errTextRequired)
+		jsonutils.OutputJsonError(errTextRequired, w, r)
 		return
 	}
 
 	if args.Rcpts == nil || len(args.Rcpts) == 0 {
-		c.Abort(0, errRcptsRequired)
+		jsonutils.OutputJsonError(errRcptsRequired, w, r)
 		return
 	}
 
@@ -63,8 +65,9 @@ func (this *HandlerMod) send(c *request.C) {
 	}
 
 	msg, id, err := this.m.Send(mail)
+
 	if err != nil {
-		c.Abort(0, newErrSendFailure(err.Error()))
+		jsonutils.OutputJsonError(newErrSendFailure(err.Error()), w, r)
 		return
 	}
 
@@ -73,6 +76,6 @@ func (this *HandlerMod) send(c *request.C) {
 		Id:      id,
 	}
 
-	jsonutils.OutputJsonWithC(res, c)
+	jsonutils.OutputJson(res, w, r)
 	return
 }

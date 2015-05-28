@@ -2,11 +2,13 @@ package mailgunner
 
 import (
 	"fmt"
+	"net/http"
 
-	"github.com/dtynn/caesar"
-	"github.com/dtynn/caesar/httputils/jsonutils"
-	"github.com/dtynn/caesar/request"
 	"github.com/mailgun/mailgun-go"
+	"github.com/tukdesk/httputils/gojimiddleware"
+	"github.com/tukdesk/httputils/jsonutils"
+	"github.com/zenazn/goji/web"
+	"github.com/zenazn/goji/web/middleware"
 )
 
 type HandlerMod struct {
@@ -41,10 +43,10 @@ func NewHandlerMod(cfg Config) (*HandlerMod, error) {
 	return h, nil
 }
 
-func (this *HandlerMod) log(c *request.C, v ...interface{}) {
-	if this.cfg.Debug {
-		c.Logger.Info(v...)
-	}
+func (this *HandlerMod) log(c *web.C, w http.ResponseWriter, r *http.Request, v ...interface{}) {
+	logger := gojimiddleware.GetRequestLogger(c, w, r)
+	logger.Info(v...)
+	return
 }
 
 func (this *HandlerMod) AddStorers(s storer) {
@@ -74,12 +76,14 @@ func (this *HandlerMod) AddEventHooker(eventType string, hooker eventHooker) {
 	this.eventHookers[eventType] = append(hookers, hooker)
 }
 
-func (this *HandlerMod) Blueprint() *caesar.Blueprint {
-	bp, _ := caesar.NewBlueprint("/mailgun")
-	bp.Post("/send", this.send)
-	bp.Post("/message/store", this.storeMessage)
-	bp.Post("/webhook", this.eventWebHooker)
-	bp.SetErrorHandler(jsonutils.OutputJsonError)
-	bp.SetNotFoundHandler(jsonutils.RouteNotFound)
-	return bp
+func (this *HandlerMod) RegisterMux(app *web.Mux) {
+	m := web.New()
+	m.Post("/send", this.send)
+	m.Post("/message/store", this.storeMessage)
+	m.Post("/webhook", this.eventWebHooker)
+	m.NotFound(jsonutils.NotFoundHandler)
+	m.Use(middleware.SubRouter)
+
+	app.Handle("/mailgun/*", m)
+	return
 }

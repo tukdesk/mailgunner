@@ -3,7 +3,7 @@ package mailgunner
 import (
 	"net/http"
 
-	"github.com/dtynn/caesar/httputils/jsonutils"
+	"github.com/tukdesk/httputils/jsonutils"
 )
 
 const (
@@ -23,6 +23,10 @@ var (
 	errTextRequired    = jsonutils.NewAPIError(http.StatusBadRequest, 990106, "text required")
 	errRcptsRequired   = jsonutils.NewAPIError(http.StatusBadRequest, 990107, "recipients required")
 )
+
+func newErrInvalidRequestBody(msg string) error {
+	return jsonutils.NewAPIError(http.StatusBadRequest, http.StatusBadRequest, msg)
+}
 
 func newErrSendFailure(msg string) error {
 	return jsonutils.NewAPIError(http.StatusInternalServerError, 990108, msg)

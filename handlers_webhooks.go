@@ -1,7 +1,10 @@
 package mailgunner
 
 import (
-	"github.com/dtynn/caesar/request"
+	"net/http"
+
+	"github.com/tukdesk/httputils/jsonutils"
+	"github.com/zenazn/goji/web"
 )
 
 const (
@@ -26,36 +29,36 @@ var (
 	}
 )
 
-func (this *HandlerMod) eventWebHooker(c *request.C) {
-	if !CheckSignatureFromRequest(c.Req, this.cfg.APIKey) {
-		c.Abort(0, errInvalidSignature)
+func (this *HandlerMod) eventWebHooker(c web.C, w http.ResponseWriter, r *http.Request) {
+	if !CheckSignatureFromRequest(r, this.cfg.APIKey) {
+		jsonutils.OutputJsonError(errInvalidSignature, w, r)
 		return
 	}
 
-	eventType := c.Req.PostFormValue("event")
+	eventType := r.PostFormValue("event")
 	switch eventType {
 	case EventTypeDelivered, EventTypeDropped, EventTypeBounced, EventTypeComplained, EventTypeUnsubscribed, EventTypeClicked, EventTypeOpened:
 
 	default:
-		this.log(c, errInvalidEventType.ErrorMsg, "type:", eventType)
-		c.Abort(0, errInvalidEventType)
+		this.log(&c, w, r, errInvalidEventType.ErrorMsg, "type:", eventType)
+		jsonutils.OutputJsonError(errInvalidEventType, w, r)
 		return
 	}
 
-	go this.doEvent(eventType, c)
+	go this.doEvent(&c, w, r, eventType)
 
 	return
 }
 
-func (this *HandlerMod) doEvent(eventType string, c *request.C) {
+func (this *HandlerMod) doEvent(c *web.C, w http.ResponseWriter, r *http.Request, eventType string) {
 	hookers, ok := this.eventHookers[eventType]
 	if !ok || hookers == nil || len(hookers) == 0 {
 		return
 	}
 
 	for i, h := range hookers {
-		if err := h(c.Req, this.cfg, eventType); err != nil {
-			this.log(c, "Hooker:", i, "event hooker error:", err)
+		if err := h(r, this.cfg, eventType); err != nil {
+			this.log(c, w, r, "Hooker:", i, "event hooker error:", err)
 		}
 	}
 }

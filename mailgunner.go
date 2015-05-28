@@ -3,8 +3,7 @@ package mailgunner
 import (
 	"net/http"
 
-	"github.com/dtynn/caesar"
-	"github.com/dtynn/caesar/request"
+	"github.com/tukdesk/httputils/gojimiddleware"
 )
 
 type storer func(req *http.Request, cfg Config, msg *GunMessage) error
@@ -13,7 +12,7 @@ type eventHooker func(req *http.Request, cfg Config, eventType string) error
 type Gunner struct {
 	handlers *HandlerMod
 
-	app *caesar.Caesar
+	app *gojimiddleware.App
 }
 
 func NewGunner(cfg Config) (*Gunner, error) {
@@ -35,11 +34,12 @@ func (this *Gunner) build() {
 		return
 	}
 
-	app := caesar.New()
+	app := gojimiddleware.NewApp()
 
-	bp := this.handlers.Blueprint()
-	app.RegisterBlueprint(bp)
-	app.AddAfterRequest(request.TimerAfterHandler)
+	this.handlers.RegisterMux(app.Mux())
+
+	app.Mux().Use(gojimiddleware.RequestLogger)
+	app.Mux().Use(gojimiddleware.RequestTimer)
 
 	this.app = app
 	return
