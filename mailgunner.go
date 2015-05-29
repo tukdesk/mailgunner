@@ -40,6 +40,7 @@ func (this *Gunner) build() {
 
 	app.Mux().Use(gojimiddleware.RequestLogger)
 	app.Mux().Use(gojimiddleware.RequestTimer)
+	app.Mux().Use(gojimiddleware.RecovererJson)
 
 	this.app = app
 	return
